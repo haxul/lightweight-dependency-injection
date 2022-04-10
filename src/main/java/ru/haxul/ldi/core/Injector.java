@@ -14,8 +14,6 @@ public class Injector {
 
     private static final Map<Class<?>, Object> container = new HashMap<>();
 
-    private static final int DEFAULT_CLASS_AMOUNTS = 40;
-
     public <T> T getSingleton(Class<T> type) {
         final Object object = container.get(type);
 
@@ -31,16 +29,17 @@ public class Injector {
         for (var constructor : singletonClass.getConstructors()) {
             final Class<?>[] paramClasses = constructor.getParameterTypes();
             final Object[] params = new Object[paramClasses.length];
-            int idx = 0;
-            for (Class<?> paramClass : paramClasses) {
-                if (!container.containsKey(paramClass)) {
-                    addOneToOneSingleton(paramClass);
-                }
+
+            for (int i = 0; i < paramClasses.length; i++) {
+
+                var paramClass = paramClasses[i];
+                if (!container.containsKey(paramClass)) addOneToOneSingleton(paramClass);
                 final Object dependency = container.get(paramClass);
-                params[idx++] = dependency;
+                params[i] = dependency;
             }
 
-            container.put(singletonClass, singletonClass.getConstructor(paramClasses).newInstance(params));
+            final Object singleton = singletonClass.getConstructor(paramClasses).newInstance(params);
+            container.put(singletonClass, singleton);
         }
     }
 
@@ -62,7 +61,7 @@ public class Injector {
 
                 if (!line.endsWith(".class")) continue;
 
-                final var name = line.substring(0 , line.length() - 6);
+                final var name = line.substring(0, line.length() - 6);
 
                 final var classNameWithPackage = packageName + "." + name;
 
