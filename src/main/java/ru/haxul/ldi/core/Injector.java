@@ -5,10 +5,12 @@ import ru.haxul.ldi.annotation.SingletonType;
 import ru.haxul.ldi.exception.InjectorException;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class Injector {
 
@@ -48,12 +50,8 @@ public class Injector {
         final var packageName = entryPoint.getPackageName();
         final String slashPkg = packageName.replaceAll("\\.", "/");
 
-        try (InputStream stream = ClassLoader.getSystemClassLoader().getResourceAsStream(slashPkg)) {
-            if (stream == null) {
-                throw new InjectorException("cannot download " + slashPkg + " from system class loader");
-            }
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+        try (final InputStream stream = ClassLoader.getSystemClassLoader().getResourceAsStream(slashPkg);
+             final BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
 
             String line;
 
