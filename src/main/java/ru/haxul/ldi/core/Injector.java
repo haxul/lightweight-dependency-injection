@@ -32,7 +32,7 @@ public class Injector {
 
             for (int i = 0; i < paramClasses.length; i++) {
 
-                var paramClass = paramClasses[i];
+                final var paramClass = paramClasses[i];
                 if (!container.containsKey(paramClass)) addOneToOneSingleton(paramClass);
                 final Object dependency = container.get(paramClass);
                 params[i] = dependency;
