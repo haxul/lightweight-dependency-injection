@@ -5,26 +5,22 @@ import ru.haxul.ldi.annotation.SingletonType;
 import ru.haxul.ldi.exception.InjectorException;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
 
 public class Injector {
 
-    private static final Map<Class<?>, Object> container = new HashMap<>();
+    private static final SingletonClassContainer container = new SingletonClassContainer();
 
-    public <T> T getSingleton(Class<T> type) {
-        final Object object = container.get(type);
+    public <T> T getSingleton(final Class<T> type) {
+        final Object singleton = container.get(type);
 
-        if (object == null) return null;
+        if (singleton == null) return null;
 
-        return type.cast(object);
+        return type.cast(singleton);
     }
 
-    private void addOneToOneSingleton(Class<?> singletonClass) throws Exception {
+    private void addOneToOneSingleton(final Class<?> singletonClass) throws Exception {
 
         if (container.containsKey(singletonClass)) return;
 
@@ -45,7 +41,7 @@ public class Injector {
         }
     }
 
-    public void init(Class<?> entryPoint) {
+    public void init(final Class<?> entryPoint) {
         if (entryPoint == null) throw new InjectorException("entry point is null");
         final var packageName = entryPoint.getPackageName();
         final String slashPkg = packageName.replaceAll("\\.", "/");
@@ -74,12 +70,13 @@ public class Injector {
                 }
             }
 
+            container.becameImmutable();
         } catch (InjectorException ex) {
             throw ex;
         } catch (ClassNotFoundException ex) {
             throw new InjectorException("Injector cannot find class", ex);
         } catch (Exception ex) {
-            throw new InjectorException("some get wrong during injector initialization", ex);
+            throw new InjectorException("something gets wrong during injector initialization", ex);
         }
     }
 }
