@@ -3,6 +3,7 @@ package ru.haxul.ldi.core;
 import ru.haxul.ldi.annotation.Singleton;
 import ru.haxul.ldi.annotation.SingletonType;
 import ru.haxul.ldi.exception.InjectorException;
+import ru.haxul.ldi.exception.SingletonNotFoundException;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -15,12 +16,17 @@ public class Injector {
     public <T> T getSingleton(final Class<T> type) {
         final Object singleton = container.get(type);
 
-        if (singleton == null) return null;
+        if (singleton == null) throw new SingletonNotFoundException(type.getName());
 
         return type.cast(singleton);
     }
 
     private void addOneToOneSingleton(final Class<?> singletonClass) throws Exception {
+        if (singletonClass.isInterface()) {
+            final var errMsg = "class " + singletonClass.getName() +
+                    " must not be interface. @Singleton type OneToOne is only for classes";
+            throw new InjectorException(errMsg);
+        }
 
         if (container.containsKey(singletonClass)) return;
 
@@ -53,9 +59,11 @@ public class Injector {
 
             while ((line = reader.readLine()) != null) {
 
-                if (!line.endsWith(".class")) continue;
+                final var classStr = ".class";
 
-                final var name = line.substring(0, line.length() - 6);
+                if (!line.endsWith(classStr)) continue;
+
+                final var name = line.substring(0, line.length() - classStr.length());
 
                 final var classNameWithPackage = packageName + "." + name;
 
@@ -65,8 +73,9 @@ public class Injector {
 
                 final Singleton annotation = clazz.getAnnotation(Singleton.class);
 
-                if (annotation.type() == SingletonType.ONE_TO_ONE) {
-                    addOneToOneSingleton(clazz);
+                switch (annotation.type()) {
+                    case ONE_TO_ONE -> addOneToOneSingleton(clazz);
+                    case ONE_TO_MANY -> {/*TODO*/}
                 }
             }
 
