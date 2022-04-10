@@ -1,17 +1,33 @@
 package ru.haxul.ldi.core;
 
 import ru.haxul.ldi.annotation.Singleton;
-import ru.haxul.ldi.annotation.SingletonType;
+import ru.haxul.ldi.collector.FileTypeViaNameDefiner;
+import ru.haxul.ldi.collector.SingletonClassCollector;
 import ru.haxul.ldi.exception.InjectorException;
 import ru.haxul.ldi.exception.SingletonNotFoundException;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.util.List;
 
 public class Injector {
 
     private static final SingletonClassContainer container = new SingletonClassContainer();
+
+    public void init(final Class<?> entryPoint) {
+        if (entryPoint == null) throw new InjectorException("entry point is null");
+        final var singletonClassCollector = new SingletonClassCollector(new FileTypeViaNameDefiner());
+        List<Class<?>> singletonClasses = singletonClassCollector.find(entryPoint.getPackageName());
+
+        for (var clazz : singletonClasses) {
+            final Singleton annotation = clazz.getAnnotation(Singleton.class);
+            switch (annotation.type()) {
+                case ONE_TO_ONE -> addOneToOneSingleton(clazz);
+                case ONE_TO_MANY -> {/*TODO*/}
+                default -> throw new IllegalStateException("unknown @singleton type(): " + annotation.type());
+            }
+        }
+
+        container.becameImmutable();
+    }
 
     public <T> T getSingleton(final Class<T> type) {
         final Object singleton = container.get(type);
@@ -21,7 +37,7 @@ public class Injector {
         return type.cast(singleton);
     }
 
-    private void addOneToOneSingleton(final Class<?> singletonClass) throws Exception {
+    private void addOneToOneSingleton(final Class<?> singletonClass) {
         if (singletonClass.isInterface()) {
             final var errMsg = "class " + singletonClass.getName() +
                     " must not be interface. @Singleton type OneToOne is only for classes";
@@ -42,50 +58,16 @@ public class Injector {
                 params[i] = dependency;
             }
 
-            final Object singleton = singletonClass.getConstructor(paramClasses).newInstance(params);
+            final Object singleton = tryToCreateSingleton(singletonClass, paramClasses, params);
             container.put(singletonClass, singleton);
         }
     }
 
-    public void init(final Class<?> entryPoint) {
-        if (entryPoint == null) throw new InjectorException("entry point is null");
-        final var packageName = entryPoint.getPackageName();
-        final String slashPkg = packageName.replaceAll("\\.", "/");
-
-        try (final InputStream stream = ClassLoader.getSystemClassLoader().getResourceAsStream(slashPkg);
-             final BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
-
-            String line;
-
-            while ((line = reader.readLine()) != null) {
-
-                final var classStr = ".class";
-
-                if (!line.endsWith(classStr)) continue;
-
-                final var name = line.substring(0, line.length() - classStr.length());
-
-                final var classNameWithPackage = packageName + "." + name;
-
-                final Class<?> clazz = Class.forName(classNameWithPackage);
-
-                if (!clazz.isAnnotationPresent(Singleton.class)) continue;
-
-                final Singleton annotation = clazz.getAnnotation(Singleton.class);
-
-                switch (annotation.type()) {
-                    case ONE_TO_ONE -> addOneToOneSingleton(clazz);
-                    case ONE_TO_MANY -> {/*TODO*/}
-                }
-            }
-
-            container.becameImmutable();
-        } catch (InjectorException ex) {
-            throw ex;
-        } catch (ClassNotFoundException ex) {
-            throw new InjectorException("Injector cannot find class", ex);
-        } catch (Exception ex) {
-            throw new InjectorException("something gets wrong during injector initialization", ex);
+    private Object tryToCreateSingleton(Class<?> clazz, Class<?>[] paramsClasses, Object[] params) {
+        try {
+            return clazz.getConstructor(paramsClasses).newInstance(params);
+        } catch (Exception e) {
+            throw new InjectorException("singleton object " + clazz + " cannot be created", e);
         }
     }
 }
