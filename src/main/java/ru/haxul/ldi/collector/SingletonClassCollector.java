@@ -1,6 +1,6 @@
 package ru.haxul.ldi.collector;
 
-import ru.haxul.ldi.annotation.Singleton;
+import ru.haxul.ldi.collector.action.ActionContext;
 import ru.haxul.ldi.exception.InjectorException;
 import ru.haxul.ldi.util.Pair;
 
@@ -12,7 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record SingletonClassCollector(
-        FileTypeDefiner<String> fileTypeDefiner) implements Collector<Class<?>, String> {
+        FileTypeDefiner<String> fileTypeDefiner,
+        ActionContext actionContext
+) implements Collector<Class<?>, String> {
 
 
     @Override
@@ -34,31 +36,10 @@ public record SingletonClassCollector(
                 String fileName;
 
                 while ((fileName = reader.readLine()) != null) {
-
                     final var fileType = fileTypeDefiner.define(fileName);
-
-                    switch (fileType) {
-                        case CLASS -> {
-                            final var name = fileName.substring(0, fileName.length() - 6);
-                            final var classNameWithPackage = curDotPkg + "." + name;
-                            final Class<?> clazz = Class.forName(classNameWithPackage);
-                            if (clazz.isAnnotationPresent(Singleton.class)) classes.add(clazz);
-                        }
-                        case FOLDER -> {
-                            final var newPair = Pair.of(curDotPkg + "." + fileName, curSlashPkg + "/" + fileName);
-                            dq.addLast(newPair);
-                        }
-                        case UNKNOWN -> {
-                        }
-
-                        default -> throw new IllegalStateException("undefined fileType: " + fileType);
-                    }
+                    final var dataContext = new ActionContext.DataContext(fileName, curDotPkg, curSlashPkg, classes, dq);
+                    actionContext.call(fileType, dataContext);
                 }
-
-            } catch (InjectorException ex) {
-                throw ex;
-            } catch (ClassNotFoundException ex) {
-                throw new InjectorException("Injector cannot find class", ex);
             } catch (Exception ex) {
                 throw new InjectorException("something gets wrong during injector initialization", ex);
             }

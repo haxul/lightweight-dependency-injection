@@ -3,6 +3,7 @@ package ru.haxul.ldi.core;
 import ru.haxul.ldi.annotation.Singleton;
 import ru.haxul.ldi.collector.FileTypeViaNameDefiner;
 import ru.haxul.ldi.collector.SingletonClassCollector;
+import ru.haxul.ldi.collector.action.ActionContext;
 import ru.haxul.ldi.exception.InjectorException;
 import ru.haxul.ldi.exception.SingletonNotFoundException;
 
@@ -13,8 +14,10 @@ public class Injector {
     private static final SingletonClassContainer container = new SingletonClassContainer();
 
     public void init(final Class<?> entryPoint) {
+
         if (entryPoint == null) throw new InjectorException("entry point is null");
-        final var singletonClassCollector = new SingletonClassCollector(new FileTypeViaNameDefiner());
+
+        final var singletonClassCollector = new SingletonClassCollector(new FileTypeViaNameDefiner(), new ActionContext());
         List<Class<?>> singletonClasses = singletonClassCollector.find(entryPoint.getPackageName());
 
         for (var clazz : singletonClasses) {
@@ -39,8 +42,7 @@ public class Injector {
 
     private void addOneToOneSingleton(final Class<?> singletonClass) {
         if (singletonClass.isInterface()) {
-            final var errMsg = "class " + singletonClass.getName() +
-                    " must not be interface. @Singleton type OneToOne is only for classes";
+            final var errMsg = "class " + singletonClass.getName() + " must not be interface. @Singleton type OneToOne is only for classes";
             throw new InjectorException(errMsg);
         }
 
