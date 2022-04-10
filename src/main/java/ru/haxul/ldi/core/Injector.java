@@ -1,21 +1,48 @@
 package ru.haxul.ldi.core;
 
 import ru.haxul.ldi.annotation.Singleton;
+import ru.haxul.ldi.annotation.SingletonType;
 import ru.haxul.ldi.exception.InjectorException;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 public class Injector {
 
-    private static final Map<Class<?>, Object> classesSingletons = new HashMap<>();
-    private static final Map<Class<?>, HashSet<Object>> interfacesSingleton = new HashMap<>();
+    private static final Map<Class<?>, Object> container = new HashMap<>();
 
     private static final int DEFAULT_CLASS_AMOUNTS = 40;
+
+    public <T> T getSingleton(Class<T> type) {
+        final Object object = container.get(type);
+
+        if (object == null) return null;
+
+        return type.cast(object);
+    }
+
+    private void addOneToOneSingleton(Class<?> singletonClass) throws Exception {
+
+        if (container.containsKey(singletonClass)) return;
+
+        for (var constructor : singletonClass.getConstructors()) {
+            final Class<?>[] paramClasses = constructor.getParameterTypes();
+            final Object[] params = new Object[paramClasses.length];
+            int idx = 0;
+            for (Class<?> paramClass : paramClasses) {
+                if (!container.containsKey(paramClass)) {
+                    addOneToOneSingleton(paramClass);
+                }
+                final Object dependency = container.get(paramClass);
+                params[idx++] = dependency;
+            }
+
+            container.put(singletonClass, singletonClass.getConstructor(paramClasses).newInstance(params));
+        }
+    }
 
     public void init(Class<?> entryPoint) {
         if (entryPoint == null) throw new InjectorException("entry point is null");
@@ -29,36 +56,24 @@ public class Injector {
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
 
-            final var classNameSet = new HashSet<String>(DEFAULT_CLASS_AMOUNTS);
+            String line;
 
+            while ((line = reader.readLine()) != null) {
 
-            reader.lines()
-                    .filter(line -> line.endsWith(".class"))
-                    .map(line -> line.substring(0, line.lastIndexOf(".")))
-                    .forEach(classNameSet::add);
+                if (!line.endsWith(".class")) continue;
 
+                final var name = line.substring(0 , line.length() - 6);
 
-            for (String name : classNameSet) {
+                final var classNameWithPackage = packageName + "." + name;
 
-                var classNameWithPackage = packageName + "." + name;
-
-                Class<?> clazz = Class.forName(classNameWithPackage);
+                final Class<?> clazz = Class.forName(classNameWithPackage);
 
                 if (!clazz.isAnnotationPresent(Singleton.class)) continue;
 
-                Singleton annotation = clazz.getAnnotation(Singleton.class);
+                final Singleton annotation = clazz.getAnnotation(Singleton.class);
 
-                if (clazz.isInterface())
-                    throw new InjectorException("Interface cannot be annotated by @Singleton. Only Classes");
-
-                switch (annotation.type()) {
-                    case CLASS -> classesSingletons.put(clazz, new Object());
-                    case INTERFACE -> {
-                        Class<?>[] interfaces = clazz.getInterfaces();
-                        HashSet<Object> singletons = interfacesSingleton.getOrDefault(clazz, new HashSet<>());
-                        singletons.add(new Object());
-                        interfacesSingleton.put(clazz, singletons);
-                    }
+                if (annotation.type() == SingletonType.ONE_TO_ONE) {
+                    addOneToOneSingleton(clazz);
                 }
             }
 

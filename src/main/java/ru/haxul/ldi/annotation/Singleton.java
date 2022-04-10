@@ -10,5 +10,5 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE})
 public @interface Singleton {
 
-    SingletonType type() default SingletonType.CLASS;
+    SingletonType type() default SingletonType.ONE_TO_ONE;
 }
