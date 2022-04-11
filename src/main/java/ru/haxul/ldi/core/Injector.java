@@ -3,7 +3,7 @@ package ru.haxul.ldi.core;
 import ru.haxul.ldi.annotation.Singleton;
 import ru.haxul.ldi.collector.FileTypeViaNameDefiner;
 import ru.haxul.ldi.collector.SingletonClassCollector;
-import ru.haxul.ldi.collector.action.ActionContext;
+import ru.haxul.ldi.collector.action.ActionCollectorContext;
 import ru.haxul.ldi.exception.InjectorException;
 import ru.haxul.ldi.exception.SingletonNotFoundException;
 
@@ -17,7 +17,7 @@ public class Injector {
 
         if (entryPoint == null) throw new InjectorException("entry point is null");
 
-        final var singletonClassCollector = new SingletonClassCollector(new FileTypeViaNameDefiner(), new ActionContext());
+        final var singletonClassCollector = new SingletonClassCollector(new FileTypeViaNameDefiner(), new ActionCollectorContext());
         List<Class<?>> singletonClasses = singletonClassCollector.find(entryPoint.getPackageName());
 
         for (var clazz : singletonClasses) {

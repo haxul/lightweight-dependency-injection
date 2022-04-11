@@ -1,6 +1,6 @@
 package ru.haxul.ldi.collector;
 
-import ru.haxul.ldi.collector.action.ActionContext;
+import ru.haxul.ldi.collector.action.ActionCollectorContext;
 import ru.haxul.ldi.exception.InjectorException;
 import ru.haxul.ldi.util.Pair;
 
@@ -13,7 +13,7 @@ import java.util.List;
 
 public record SingletonClassCollector(
         FileTypeDefiner<String> fileTypeDefiner,
-        ActionContext actionContext
+        ActionCollectorContext actionCollectorContext
 ) implements Collector<Class<?>, String> {
 
 
@@ -37,8 +37,8 @@ public record SingletonClassCollector(
 
                 while ((fileName = reader.readLine()) != null) {
                     final var fileType = fileTypeDefiner.define(fileName);
-                    final var dataContext = new ActionContext.DataContext(fileName, curDotPkg, curSlashPkg, classes, dq);
-                    actionContext.call(fileType, dataContext);
+                    final var dataContext = new ActionCollectorContext.DataContext(fileName, curDotPkg, curSlashPkg);
+                    actionCollectorContext.call(fileType, dataContext, classes, dq);
                 }
             } catch (Exception ex) {
                 throw new InjectorException("something gets wrong during injector initialization", ex);

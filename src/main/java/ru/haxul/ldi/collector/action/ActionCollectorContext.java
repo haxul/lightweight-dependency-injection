@@ -8,24 +8,23 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Objects;
 
-public class ActionContext {
+public class ActionCollectorContext {
 
     private final EnumMap<FileType, ActionExecutor> context = new EnumMap<>(FileType.class);
 
-    public ActionContext() {
+    public ActionCollectorContext() {
         context.put(FileType.CLASS, new ClassActionExecutor());
         context.put(FileType.UNKNOWN, new UnknownActionExecutor());
         context.put(FileType.FOLDER, new FolderActionExecutor());
     }
 
-    public void call(FileType key, DataContext data) {
+    public void call(FileType key, DataContext data,  List<Class<?>> classes, Deque<Pair<String, String>> dq) {
         Objects.requireNonNull(key);
         Objects.requireNonNull(data);
 
-        context.get(key).execute(data);
+        context.get(key).execute(data, classes, dq);
     }
 
-    public record DataContext(String filename, String dotPkg, String slashPkg, List<Class<?>> classes,
-                              Deque<Pair<String, String>> dq) {
+    public record DataContext(String filename, String dotPkg, String slashPkg) {
     }
 }
