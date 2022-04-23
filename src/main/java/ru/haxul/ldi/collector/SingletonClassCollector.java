@@ -9,6 +9,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
 
+import static java.util.Optional.*;
+
 public record SingletonClassCollector(
         FileTypeDefiner<String> fileTypeDefiner,
         ActionCollectorContext actionCollectorContext
@@ -31,7 +33,7 @@ public record SingletonClassCollector(
 
             try (final InputStream stream = ClassLoader.getSystemClassLoader().getResourceAsStream(curSlashPkg);
                  final BufferedReader reader = new BufferedReader(
-                         new InputStreamReader(Optional.ofNullable(stream).orElseThrow(() -> new IllegalStateException("stream is null")))
+                         new InputStreamReader(ofNullable(stream).orElseThrow(() -> new IllegalStateException("stream is null")))
                  )
             ) {
 
