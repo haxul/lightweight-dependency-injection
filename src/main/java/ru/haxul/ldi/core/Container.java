@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SingletonClassContainer {
+public class Container {
 
     private static Map<Class<?>, Object> storage = new HashMap<>();
     private boolean locked = false;

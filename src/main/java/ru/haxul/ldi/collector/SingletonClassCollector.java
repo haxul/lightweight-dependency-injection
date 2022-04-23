@@ -7,9 +7,7 @@ import ru.haxul.ldi.util.Pair;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public record SingletonClassCollector(
         FileTypeDefiner<String> fileTypeDefiner,
@@ -19,6 +17,7 @@ public record SingletonClassCollector(
 
     @Override
     public List<Class<?>> find(final String entryPoint) {
+        Objects.requireNonNull(entryPoint);
 
         final var classes = new ArrayList<Class<?>>(30);
         final var dq = new ArrayDeque<Pair<String, String>>();
@@ -31,13 +30,16 @@ public record SingletonClassCollector(
             final String curSlashPkg = pair.right();
 
             try (final InputStream stream = ClassLoader.getSystemClassLoader().getResourceAsStream(curSlashPkg);
-                 final BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
+                 final BufferedReader reader = new BufferedReader(
+                         new InputStreamReader(Optional.ofNullable(stream).orElseThrow(() -> new IllegalStateException("stream is null")))
+                 )
+            ) {
 
                 String fileName;
 
                 while ((fileName = reader.readLine()) != null) {
                     final var fileType = fileTypeDefiner.define(fileName);
-                    final var dataContext = new ActionCollectorContext.DataContext(fileName, curDotPkg, curSlashPkg);
+                    final var dataContext = new ActionCollectorContext.Data(fileName, curDotPkg, curSlashPkg);
                     actionCollectorContext.call(fileType, dataContext, classes, dq);
                 }
             } catch (Exception ex) {

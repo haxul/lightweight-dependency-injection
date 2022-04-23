@@ -10,16 +10,15 @@ import java.util.List;
 public class ClassActionExecutor implements ActionExecutor {
 
     @Override
-    public void execute(ActionCollectorContext.DataContext dataContext, List<Class<?>> classes, Deque<Pair<String, String>> dq) {
+    public void execute(ActionCollectorContext.Data data, List<Class<?>> singletons, Deque<Pair<String, String>> dq) {
         try {
-            final var name = dataContext.filename().substring(0, dataContext.filename().length() - ".class".length());
-            final var classNameWithPackage = dataContext.dotPkg() + "." + name;
+            final var name = data.filename().substring(0, data.filename().length() - ".class".length());
+            final var classNameWithPackage = data.dotPkg() + "." + name;
             final Class<?> clazz = Class.forName(classNameWithPackage);
-            if (clazz.isAnnotationPresent(Singleton.class)) classes.add(clazz);
+            if (clazz.isAnnotationPresent(Singleton.class)) singletons.add(clazz);
         } catch (ClassNotFoundException ex) {
             throw new InjectorException("Injector cannot find class", ex);
         }
-
     }
 }
 

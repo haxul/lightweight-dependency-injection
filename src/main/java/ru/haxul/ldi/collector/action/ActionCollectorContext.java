@@ -18,13 +18,13 @@ public class ActionCollectorContext {
         context.put(FileType.FOLDER, new FolderActionExecutor());
     }
 
-    public void call(FileType key, DataContext data,  List<Class<?>> classes, Deque<Pair<String, String>> dq) {
+    public void call(FileType key, Data data, List<Class<?>> classes, Deque<Pair<String, String>> dq) {
         Objects.requireNonNull(key);
         Objects.requireNonNull(data);
 
         context.get(key).execute(data, classes, dq);
     }
 
-    public record DataContext(String filename, String dotPkg, String slashPkg) {
+    public record Data(String filename, String dotPkg, String slashPkg) {
     }
 }

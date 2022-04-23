@@ -8,7 +8,5 @@ import java.util.List;
 public class UnknownActionExecutor implements ActionExecutor {
 
     @Override
-    public void execute(ActionCollectorContext.DataContext dataContext, List<Class<?>> classes, Deque<Pair<String, String>> dq) {
-
-    }
+    public void execute(ActionCollectorContext.Data dataContext, List<Class<?>> singletons, Deque<Pair<String, String>> dq) {}
 }

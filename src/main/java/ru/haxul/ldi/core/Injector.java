@@ -1,50 +1,43 @@
 package ru.haxul.ldi.core;
 
-import ru.haxul.ldi.annotation.Singleton;
 import ru.haxul.ldi.collector.FileTypeViaNameDefiner;
 import ru.haxul.ldi.collector.SingletonClassCollector;
 import ru.haxul.ldi.collector.action.ActionCollectorContext;
 import ru.haxul.ldi.exception.CycleDependencyException;
 import ru.haxul.ldi.exception.InjectorException;
-import ru.haxul.ldi.exception.SingletonNotFoundException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Injector {
 
-    private static final SingletonClassContainer container = new SingletonClassContainer();
+    private static final Container container = new Container();
 
     public void init(final Class<?> entryPoint) {
 
         if (entryPoint == null) throw new InjectorException("entry point is null");
 
-        final var singletonClassCollector = new SingletonClassCollector(new FileTypeViaNameDefiner(), new ActionCollectorContext());
+        final var singletonClassCollector =
+                new SingletonClassCollector(new FileTypeViaNameDefiner(), new ActionCollectorContext());
+
         List<Class<?>> singletonClasses = singletonClassCollector.find(entryPoint.getPackageName());
 
         for (var clazz : singletonClasses) {
-            final Singleton annotation = clazz.getAnnotation(Singleton.class);
-            switch (annotation.type()) {
-                case ONE_TO_ONE -> addOneToOneSingleton(clazz, new HashMap<>());
-                case ONE_TO_MANY -> {/*TODO*/}
-                default -> throw new IllegalStateException("unknown @singleton type(): " + annotation.type());
-            }
+            saveSingleton(clazz, new HashMap<>());
         }
 
         container.becameImmutable();
     }
 
-    public <T> T getSingleton(final Class<T> type) {
-        final Object singleton = container.get(type);
+    private void saveSingleton(final Class<?> singletonClass,
+                               final Map<Class<?>, List<Class<?>>> dependencyClassInvokedOnStackTracker) {
 
-        if (singleton == null) throw new SingletonNotFoundException(type.getName());
-
-        return type.cast(singleton);
-    }
-
-    private void addOneToOneSingleton(final Class<?> singletonClass, final Map<Class<?>, List<Class<?>>> dependencyClassInvokedOnStackTracker) {
         if (singletonClass.isInterface()) {
-            final var errMsg = "class " + singletonClass.getName() + " must not be interface. @Singleton type OneToOne is only for classes";
+            final var errMsg = "class " + singletonClass.getName() +
+                    " must not be interface. @Singleton type OneToOne is only for classes";
             throw new InjectorException(errMsg);
         }
 
@@ -74,7 +67,7 @@ public class Injector {
                     classesOnStack.add(paramClass);
                     dependencyClassInvokedOnStackTracker.put(singletonClass, classesOnStack);
 
-                    addOneToOneSingleton(paramClass, dependencyClassInvokedOnStackTracker);
+                    saveSingleton(paramClass, dependencyClassInvokedOnStackTracker);
                 }
                 final Object dependency = container.get(paramClass);
                 params[i] = dependency;

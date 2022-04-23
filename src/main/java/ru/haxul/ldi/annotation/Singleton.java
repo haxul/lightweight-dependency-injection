@@ -8,7 +8,4 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
-public @interface Singleton {
-
-    SingletonType type() default SingletonType.ONE_TO_ONE;
-}
+public @interface Singleton {}

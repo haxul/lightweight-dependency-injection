@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface ActionExecutor {
 
-    void execute(ActionCollectorContext.DataContext dataContext, List<Class<?>> classes, Deque<Pair<String, String>> dq);
+    void execute(ActionCollectorContext.Data dataContext, List<Class<?>> singletons, Deque<Pair<String, String>> dq);
 }
