@@ -17,6 +17,7 @@ public record SingletonClassCollector(
 ) implements Collector<Class<?>, String> {
 
 
+    // based on bfs algo
     @Override
     public List<Class<?>> find(final String entryPoint) {
         Objects.requireNonNull(entryPoint);

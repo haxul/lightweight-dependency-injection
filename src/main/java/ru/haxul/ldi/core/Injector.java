@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 public class Injector {
 
-    private static final Container container = new Container();
+    private static final Map<Class<?>, Object> container = new HashMap<>();
 
     public void init(final Class<?> entryPoint) {
 
@@ -28,21 +28,23 @@ public class Injector {
         for (var clazz : singletonClasses) {
             saveSingleton(clazz, new HashMap<>());
         }
-
-        container.becameImmutable();
     }
 
+    // based on depth first search algo
     private void saveSingleton(final Class<?> singletonClass,
                                final Map<Class<?>, List<Class<?>>> dependencyClassInvokedOnStackTracker) {
 
+        // validation
         if (singletonClass.isInterface()) {
             final var errMsg = "class " + singletonClass.getName() +
                     " must not be interface. @Singleton type OneToOne is only for classes";
             throw new InjectorException(errMsg);
         }
 
+        // finite case
         if (container.containsKey(singletonClass)) return;
 
+        // check if there is a dependency cycle
         if (dependencyClassInvokedOnStackTracker.containsKey(singletonClass)) {
             final String cycledClassesStr = dependencyClassInvokedOnStackTracker.get(singletonClass)
                     .stream()
@@ -52,6 +54,7 @@ public class Injector {
             throw new CycleDependencyException(singletonClass + " in a cycle with " + cycledClassesStr);
         }
 
+        // get classes which were on the stack before
         final var classesOnStack = dependencyClassInvokedOnStackTracker
                 .getOrDefault(singletonClass, new ArrayList<>());
 
@@ -62,9 +65,12 @@ public class Injector {
             for (int i = 0; i < paramClasses.length; i++) {
 
                 final var paramClass = paramClasses[i];
-                if (!container.containsKey(paramClass)) {
 
+                if (!container.containsKey(paramClass)) {
+                    // if container does not have the dependency , try to create this dependency
                     classesOnStack.add(paramClass);
+
+                    //add mark that the class is on the stack
                     dependencyClassInvokedOnStackTracker.put(singletonClass, classesOnStack);
 
                     saveSingleton(paramClass, dependencyClassInvokedOnStackTracker);
@@ -75,6 +81,8 @@ public class Injector {
 
             final Object singleton = tryToCreateSingleton(singletonClass, paramClasses, params);
             container.put(singletonClass, singleton);
+
+            // remove mark that the class is not on stack
             dependencyClassInvokedOnStackTracker.remove(singletonClass);
         }
     }
